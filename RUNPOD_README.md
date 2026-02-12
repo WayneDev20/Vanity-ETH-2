@@ -4,31 +4,48 @@ Step-by-step guide to run the vanity address generator on RunPod with GPU.
 
 ---
 
-## Prerequisites
+## Quick Reference: Full Workflow
 
-- RunPod account: [runpod.io](https://www.runpod.io/)
-- Project folder (`Vanity-ETH 2`) on your computer
-- Target Ethereum addresses (each must be 40 hex chars after `0x`)
+| Step | Action |
+|------|--------|
+| 1 | Terminate current pod (if any) |
+| 2 | Deploy new pod (RTX 4090 + CUDA template) |
+| 3 | Connect → Web Terminal |
+| 4 | Clone from GitHub |
+| 5 | Run `./runpod_setup.sh` |
+| 6 | `nano addresses.txt` → add your addresses |
+| 7 | `./runpod_run.sh` |
+| 8 | Download `output.csv` when done |
+| 9 | Terminate pod |
 
 ---
 
-## Step 1: Create a RunPod Pod
+## Step 1: Terminate Your Current Pod
 
 1. Go to [runpod.io/console/pods](https://www.runpod.io/console/pods)
-2. Click **+ Deploy**, then **GPU Cloud**
-3. Choose a GPU:
-   - **RTX 4090** — ~$0.44/hr (recommended, ~3800 M/s)
-   - **RTX 3090** — ~$0.34/hr (~1600 M/s)
-   - **A100** — higher cost, very fast
-4. Pick a **Template**:
-   - `RunPod Pytorch 2.1` or any `*-cuda*-devel` image
-   - Example: `runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel`
-5. Choose **80 GB** disk (or more)
-6. Deploy and wait for the pod to start (status: **Running**)
+2. Find your running pod in the list
+3. Click the **three dots (⋮)** or **Actions** menu
+4. Click **Terminate Pod** (or **Stop** then **Terminate**)
+5. Confirm — the pod will be removed and billing stops
 
 ---
 
-## Step 2: Connect to the Pod
+## Step 2: Create a New Pod
+
+1. On [runpod.io/console/pods](https://www.runpod.io/console/pods), click **+ Deploy**
+2. Choose **GPU Cloud**
+3. Select a GPU:
+   - **RTX 4090** — ~$0.44/hr (recommended, ~3800 M/s)
+   - **RTX 3090** — ~$0.34/hr (~1600 M/s)
+4. Select a **Template** with CUDA:
+   - `RunPod Pytorch 2.1` or `runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel`
+5. Set **Disk** to **80 GB** or more
+6. Click **Deploy**
+7. Wait until status is **Running**
+
+---
+
+## Step 3: Connect to the Pod
 
 ### Option A: Web Terminal
 
@@ -45,21 +62,23 @@ Step-by-step guide to run the vanity address generator on RunPod with GPU.
 
 ---
 
-## Step 3: Upload the Project
+## Step 4: Clone the Project
 
-### Option A: RunPod File Browser
+### Option A: Git (recommended)
 
-1. In the pod page, open **Connect** → **File Browser**
-2. Go to `/workspace` or `/root`
-3. Upload the `Vanity-ETH 2` folder (zip it first, then upload and extract)
-
-### Option B: Git (if you use a repo)
+In the Web Terminal:
 
 ```bash
-cd /workspace   # or ~
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd Vanity-ETH-2   # or the folder name
+cd /workspace
+git clone https://github.com/WayneDev20/Vanity-ETH-2.git
+cd Vanity-ETH-2
 ```
+
+### Option B: File Browser upload
+
+1. In the pod page, open **Connect** → **File Browser**
+2. Go to `/workspace`
+3. Upload a zip of the project, then extract it
 
 ### Option C: SCP (from your computer)
 
@@ -76,7 +95,7 @@ scp -P YOUR_PORT -r "/path/to/Vanity-ETH 2" root@YOUR_POD_IP:/workspace/
 
 ---
 
-## Step 4: One-Time Setup
+## Step 5: One-Time Setup
 
 1. Go to the project folder:
 
@@ -113,7 +132,7 @@ ls -la vanity-eth-address/vanity-eth-address
 
 ---
 
-## Step 5: Add Target Addresses
+## Step 6: Add Target Addresses
 
 Edit `addresses.txt` — one address per line:
 
@@ -139,7 +158,7 @@ Save: `Ctrl+O`, Enter, then `Ctrl+X`.
 
 ---
 
-## Step 6: Run
+## Step 7: Run
 
 ```bash
 ./runpod_run.sh
@@ -155,7 +174,7 @@ python3 vanity_address.py
 
 ---
 
-## Step 7: Check Results
+## Step 8: Check Results
 
 Results are written to `output.csv`:
 
@@ -170,7 +189,7 @@ Columns:
 
 ---
 
-## Download Results
+## Step 9: Download Results & Terminate
 
 ### Option A: Web file browser
 
@@ -178,11 +197,7 @@ Columns:
 2. Go to the project folder
 3. Download `output.csv`
 
-### Option B: SCP (from your computer)
-
-```bash
-scp -P YOUR_PORT root@YOUR_POD_IP:/workspace/Vanity-ETH-2/output.csv ./
-```
+**Terminate pod (stop billing):** Pod → ⋮ menu → Terminate Pod → Confirm
 
 ---
 
@@ -205,16 +220,19 @@ export VANITY_GPU_CUDA_WORK_SCALE=17
 
 ## Full Command Sequence (Copy-Paste)
 
+After connecting to the pod Web Terminal:
+
 ```bash
-cd /workspace/Vanity-ETH-2
+cd /workspace
+git clone https://github.com/WayneDev20/Vanity-ETH-2.git
+cd Vanity-ETH-2
 chmod +x runpod_setup.sh runpod_run.sh vanity-eth-address/runpod_build.sh
 ./runpod_setup.sh
-
-# Edit addresses.txt, then:
+nano addresses.txt
+# Add your addresses, save (Ctrl+O, Enter, Ctrl+X)
 ./runpod_run.sh
-
-# View results
 cat output.csv
+# Then terminate the pod in RunPod console
 ```
 
 ---
