@@ -246,6 +246,7 @@ cat output.csv
 | `Nothing to do` | All addresses in `addresses.txt` are already in `output.csv` |
 | Very slow | Increase `VANITY_GPU_CUDA_WORK_SCALE` (e.g. `17`) |
 | Build fails | Ensure `nvidia-smi` works; try a different CUDA template |
+| Many addresses fail after first few | Fixed in script: 2s delay between runs, retries, better cleanup. Re-run; failed addresses are retried on resume. |
 
 ---
 

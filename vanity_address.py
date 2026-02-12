@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import shutil
+import time
 from multiprocessing import Process, Manager, Pool, cpu_count
 from tqdm import tqdm
 
@@ -181,6 +182,7 @@ def _run_cuda_streaming(cmd: list, cwd: str, timeout_seconds: int) -> tuple:
     try:
         proc = subprocess.Popen(
             cmd,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             cwd=cwd or None,
@@ -199,9 +201,13 @@ def _run_cuda_streaming(cmd: list, cwd: str, timeout_seconds: int) -> tuple:
         if timeout_seconds and elapsed > timeout_seconds:
             proc.terminate()
             try:
-                proc.wait(timeout=5)
+                proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 proc.kill()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
             break
         with output_lock:
             out = "".join(output)
@@ -209,9 +215,13 @@ def _run_cuda_streaming(cmd: list, cwd: str, timeout_seconds: int) -> tuple:
         if addr and priv:
             proc.terminate()
             try:
-                proc.wait(timeout=5)
+                proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 proc.kill()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
             return addr, priv
         if proc.poll() is not None:
             break
@@ -298,11 +308,15 @@ SIMULTANEOUS_ADDRESSES = 8
 #   VANITY_GPU_BIN=/path         -> OpenCL/profanity-style binary (fallback). Args: --matching <pattern>
 #   VANITY_GPU_EXTRA_ARGS="..."  -> extra args for OpenCL binary
 #   VANITY_GPU_TIMEOUT=600       -> kill hung GPU process after N seconds
+#   VANITY_GPU_DELAY_SEC=2       -> seconds to wait between GPU runs (helps avoid resource conflicts)
+#   VANITY_GPU_RETRIES=2         -> retry failed GPU attempts before falling back to CPU
 USE_GPU = os.environ.get("VANITY_GPU", "").strip().lower() in ("1", "true", "yes")
 GPU_REQUIRE = os.environ.get("VANITY_GPU_REQUIRE", "").strip().lower() in ("1", "true", "yes")
 GPU_CUDA_BIN = os.environ.get("VANITY_GPU_CUDA_BIN", "").strip()  # CUDA binary (prefix+suffix); preferred if set
 GPU_BIN = os.environ.get("VANITY_GPU_BIN", "").strip() or "profanity"
 GPU_TIMEOUT = int(os.environ.get("VANITY_GPU_TIMEOUT", "0") or "0") or None
+GPU_DELAY_SEC = float(os.environ.get("VANITY_GPU_DELAY_SEC", "2") or "2")
+GPU_RETRIES = int(os.environ.get("VANITY_GPU_RETRIES", "2") or "2")
 
 
 def _resolve_gpu_binaries():
@@ -366,7 +380,7 @@ if __name__ == "__main__":
             if line.strip() and not line.strip().startswith("#")
         ]
 
-    # Resume: skip addresses already in output.csv
+    # Resume: skip addresses that already have a successful result (not "Failed to generate" / "GPU failed")
     completed = set()
     if os.path.exists(output_file):
         try:
@@ -375,8 +389,10 @@ if __name__ == "__main__":
                 header = next(reader, None)
                 if header and header[0] == "Original Address":
                     for row in reader:
-                        if row and row[0].strip():
-                            completed.add(row[0].strip().lower())
+                        if row and row[0].strip() and len(row) >= 2:
+                            new_addr = (row[1] or "").strip()
+                            if new_addr and new_addr not in ("Failed to generate", "GPU failed", "N/A"):
+                                completed.add(row[0].strip().lower())
         except (csv.Error, OSError):
             pass
 
@@ -408,14 +424,21 @@ if __name__ == "__main__":
             csvfile.flush()
 
         if USE_GPU and (gpu_cuda_bin_resolved or gpu_bin_resolved):
-            # GPU: one address at a time
-            for orig in tqdm(original_addresses, desc="Processing (GPU)", unit="addr"):
-                if gpu_cuda_bin_resolved:
-                    new_addr, priv_key = _find_vanity_gpu_cuda(orig, gpu_cuda_bin_resolved, GPU_TIMEOUT)
-                else:
-                    new_addr, priv_key = _find_vanity_gpu(orig, gpu_bin_resolved, GPU_TIMEOUT)
+            # GPU: one address at a time, with delay between runs to allow GPU cleanup
+            for i, orig in enumerate(tqdm(original_addresses, desc="Processing (GPU)", unit="addr")):
+                if i > 0 and GPU_DELAY_SEC > 0:
+                    time.sleep(GPU_DELAY_SEC)
+                new_addr, priv_key = None, None
+                for attempt in range(GPU_RETRIES + 1):
+                    if gpu_cuda_bin_resolved:
+                        new_addr, priv_key = _find_vanity_gpu_cuda(orig, gpu_cuda_bin_resolved, GPU_TIMEOUT)
+                    else:
+                        new_addr, priv_key = _find_vanity_gpu(orig, gpu_bin_resolved, GPU_TIMEOUT)
+                    if new_addr and priv_key:
+                        break
+                    if attempt < GPU_RETRIES and GPU_DELAY_SEC > 0:
+                        time.sleep(GPU_DELAY_SEC)
                 if not new_addr or not priv_key:
-                    # GPU failed; optionally force-stop if user required GPU
                     if GPU_REQUIRE:
                         writer.writerow([orig, "GPU failed", "N/A"])
                         csvfile.flush()

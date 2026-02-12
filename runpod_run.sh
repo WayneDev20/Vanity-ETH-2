@@ -23,6 +23,8 @@ fi
 
 export VANITY_GPU=1
 export VANITY_GPU_CUDA_BIN="$VANITY_BIN"
+export VANITY_GPU_DELAY_SEC=2
+export VANITY_GPU_RETRIES=2
 
 echo "Using GPU: $VANITY_BIN"
 echo "Input: addresses.txt"
