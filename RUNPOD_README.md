@@ -118,16 +118,10 @@ ls -la vanity-eth-address/vanity-eth-address
 Edit `addresses.txt` — one address per line:
 
 ```bash
-# If nano is available:
 nano addresses.txt
-
-# If nano is not installed, use vim or vi:
-vi addresses.txt
-# (Press 'i' to edit, add your addresses, Esc then :wq to save)
-
-# Or overwrite with echo:
-echo "0x1234abcdef1234567890abcdef1234567890abcd" > addresses.txt
 ```
+
+(`nano` is installed by `runpod_setup.sh`. If missing: `apt install nano`)
 
 Example:
 

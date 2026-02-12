@@ -11,6 +11,10 @@ echo "=== RunPod Vanity-ETH Setup ==="
 echo "Project dir: $REPO_DIR"
 echo ""
 
+# 0. Install nano for editing addresses.txt
+echo ">>> Installing nano..."
+apt-get update -qq && apt-get install -y nano >/dev/null 2>&1 || true
+
 # 1. Build vanity-eth-address
 echo ">>> Building vanity-eth-address (CUDA)..."
 cd "$REPO_DIR/vanity-eth-address"
@@ -38,7 +42,7 @@ if [ ! -f "$REPO_DIR/addresses.txt" ]; then
 # Replace the example below with your target addresses
 0x1234abcdef1234567890abcdef1234567890abcd
 EOF
-    echo "   Edit addresses.txt and add your target addresses, then run ./runpod_run.sh"
+    echo "   Edit with: nano addresses.txt"
 fi
 
 echo ""
