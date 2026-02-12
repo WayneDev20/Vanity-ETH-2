@@ -1,0 +1,15 @@
+# Output and user data
+output.csv
+addresses.txt
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS
+.DS_Store
+
+# Build output (vanity-eth-address builds on RunPod)
+vanity-eth-address/vanity-eth-address
