@@ -1,4 +1,4 @@
-# RunPod Setup — Vanity-ETH (4+4 prefix+suffix)
+# RunPod Setup — Vanity-ETH (4+5 prefix+suffix)
 
 Step-by-step guide to run the vanity address generator on RunPod with GPU.
 
@@ -254,6 +254,7 @@ cat output.csv
 | Pattern | RTX 4090 (~3800 M/s) |
 |--------|----------------------|
 | 4+4    | ~5–30 seconds        |
+| 4+5    | ~15–60 seconds       |
 | 5+5    | ~15–30 minutes       |
 
-For 4+4, RTX 4090 often finishes in seconds. Stop the pod when done to avoid extra charges.
+For 4+5, RTX 4090 often finishes in under a minute. Stop the pod when done to avoid extra charges.

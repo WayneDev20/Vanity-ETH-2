@@ -8,9 +8,9 @@ import shutil
 from multiprocessing import Process, Manager, Pool, cpu_count
 from tqdm import tqdm
 
-# Match first N and last M hex chars of address (after 0x). 4+4 is faster than 5+5.
+# Match first N and last M hex chars of address (after 0x). 4 prefix + 5 suffix.
 PREFIX_LEN = 4
-SUFFIX_LEN = 4
+SUFFIX_LEN = 5
 
 
 def eth_address_from_pubkey(pubkey_bytes: bytes) -> str:
@@ -224,7 +224,7 @@ def _run_cuda_streaming(cmd: list, cwd: str, timeout_seconds: int) -> tuple:
 
 def _find_vanity_gpu_cuda(original_address: str, cuda_bin: str, timeout_seconds=None):
     """
-    Use a CUDA vanity binary for GPU. Matches PREFIX + SUFFIX (e.g. 4+4 or 5+5 hex).
+    Use a CUDA vanity binary for GPU. Matches PREFIX + SUFFIX (e.g. 4+5, 4+4 hex).
     Supports:
       1) vanity-eth-address: --prefix X --suffix Y --device N (doesn't exit, we stream)
       2) positional: <cuda_bin> <prefix> <suffix>
